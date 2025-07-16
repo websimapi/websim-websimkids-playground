@@ -3,56 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebsimKids Playground</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <title>WebsimKids - Parent Supervision Mode</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+        
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #websim-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        
+        .monitor-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            min-width: 200px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .monitor-item {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .monitor-label {
+            opacity: 0.7;
+        }
+        
+        .monitor-value {
+            font-weight: bold;
+        }
+        
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .control-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: #0056b3;
+        }
+        
+        .control-btn.danger {
+            background: #dc3545;
+        }
+        
+        .control-btn.danger:hover {
+            background: #c82333;
+        }
+        
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
-    <div class="sky">
-        <div class="cloud cloud1"></div>
-        <div class="cloud cloud2"></div>
-        <div class="cloud cloud3"></div>
+    <div class="container">
+        <iframe 
+            id="websim-frame" 
+            src="https://websim.com" 
+            title="WebsimKids - Parent Supervision Mode"
+            allow="camera; microphone; geolocation; fullscreen"
+        ></iframe>
+        
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            <span>Supervision Active</span>
+        </div>
+        
+        <div class="monitor-panel">
+            <div class="monitor-item">
+                <span class="monitor-label">Visit Count:</span>
+                <span class="monitor-value" id="visit-count">0</span>
+            </div>
+            <div class="monitor-item">
+                <span class="monitor-label">Current URL:</span>
+                <span class="monitor-value" id="current-url">websim.com</span>
+            </div>
+            <div class="monitor-item">
+                <span class="monitor-label">Session Time:</span>
+                <span class="monitor-value" id="session-time">00:00</span>
+            </div>
+            <div class="monitor-item">
+                <span class="monitor-label">Clicks:</span>
+                <span class="monitor-value" id="click-count">0</span>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <button class="control-btn" onclick="refreshFrame()">Refresh</button>
+            <button class="control-btn" onclick="goBack()">Back</button>
+            <button class="control-btn" onclick="goHome()">Home</button>
+            <button class="control-btn danger" onclick="emergencyStop()">Stop Session</button>
+        </div>
     </div>
-    
-    <div class="ground"></div>
-    
-    <div class="playground">
-        <div class="sandbox">
-            <div class="sand"></div>
-            <div class="bucket"></div>
-            <div class="shovel"></div>
-        </div>
+
+    <script>
+        let visitCount = 0;
+        let clickCount = 0;
+        let startTime = Date.now();
+        let sessionActive = true;
         
-        <div class="swing-set">
-            <div class="swing-seat"></div>
-        </div>
+        const frame = document.getElementById('websim-frame');
         
-        <div class="slide">
-            <div class="slide-top"></div>
-            <div class="slide-bottom"></div>
-        </div>
+        // Monitor iframe navigation
+        frame.addEventListener('load', function() {
+            visitCount++;
+            document.getElementById('visit-count').textContent = visitCount;
+            try {
+                document.getElementById('current-url').textContent = frame.contentWindow.location.hostname || 'websim.com';
+            } catch (e) {
+                // CORS protection prevents reading URL
+                document.getElementById('current-url').textContent = 'websim.com';
+            }
+        });
         
-        <div class="seesaw">
-            <div class="seesaw-left"></div>
-            <div class="seesaw-right"></div>
-            <div class="seesaw-base"></div>
-        </div>
+        // Monitor clicks
+        frame.addEventListener('click', function() {
+            clickCount++;
+            document.getElementById('click-count').textContent = clickCount;
+        });
         
-        <div class="ball"></div>
-    </div>
-    
-    <div class="character">
-        <div class="head"></div>
-        <div class="body"></div>
-        <div class="arms"></div>
-        <div class="legs"></div>
-    </div>
-    
-    <div class="sun"></div>
-    
-    <script src="script.js"></script>
+        // Update session timer
+        setInterval(() => {
+            if (sessionActive) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('session-time').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+        
+        // Control functions
+        function refreshFrame() {
+            frame.src = frame.src;
+            visitCount++;
+            document.getElementById('visit-count').textContent = visitCount;
+        }
+        
+        function goBack() {
+            try {
+                frame.contentWindow.history.back();
+            } catch (e) {
+                frame.src = 'https://websim.com';
+            }
+        }
+        
+        function goHome() {
+            frame.src = 'https://websim.com';
+        }
+        
+        function emergencyStop() {
+            sessionActive = false;
+            frame.src = 'about:blank';
+            document.querySelector('.status-indicator').innerHTML = `
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: #dc3545;"></div>
+                <span>Session Ended</span>
+            `;
+            document.querySelector('.control-panel').style.display = 'none';
+            alert('Session has been stopped. Please reload to start a new session.');
+        }
+        
+        // Keyboard shortcuts for parent
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 'r':
+                        e.preventDefault();
+                        refreshFrame();
+                        break;
+                    case 'b':
+                        e.preventDefault();
+                        goBack();
+                        break;
+                    case 'h':
+                        e.preventDefault();
+                        goHome();
+                        break;
+                    case 'Escape':
+                        emergencyStop();
+                        break;
+                }
+            }
+        });
+        
+        // Log session start
+        console.log('WebsimKids supervision session started at', new Date().toISOString());
+    </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
-
